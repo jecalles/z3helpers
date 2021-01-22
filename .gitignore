@@ -4,3 +4,5 @@ Pipfile
 Pipfile.lock
 __pycache__/
 build/
+pyproject.toml
+z3helpers_jecalles.egg-info/
