@@ -2,9 +2,17 @@ import itertools
 
 from synbio.codes import Code
 from synbio.utils import get_codons
-from z3 import Or
+from z3 import Or, PbEq, PbLe
 
 from z3helpers.definitions import *
+
+
+# general constraints
+def this_many_booleans(bool_list, threshold, weighting=None):
+    if weighting is None:
+        weighting = [1 for _ in range(len(bool_list))]
+
+    return PbLe(list(zip(bool_list, weighting)), k=threshold)
 
 
 # constrain nucleotide -> codon mapping
@@ -49,6 +57,13 @@ def at_most_one_codon_per_amino(T, exclude=(NULL, STOP)):
     ]
 
 
+def exactly_one_codon_per_amino(T, exclude=(NULL, STOP)):
+    return [
+        PbEq([(T(c) == aa, 1) for c in z3codons], k=1)
+        for aa in z3aminos if aa not in exclude
+    ]
+
+
 def compatible_with_standard_code(T):
     sc = Code()
     return [
@@ -74,12 +89,7 @@ def translates_same(T, f_codon, seq_variables, part, offset):
 
 # bundled constraints
 def FS20(T=f_codon_to_amino, f_codon=f_nuc_to_codon):
-    constraints = [
-        f_codon_true_mapping(f_codon),
-        at_least_one_codon_per_amino(T),
-        at_most_one_codon_per_amino(T)
-    ]
-    return list(itertools.chain(*constraints))
+    return f_codon_true_mapping(f_codon) + exactly_one_codon_per_amino(T)
 
 
 def RED20(T=f_codon_to_amino, f_codon=f_nuc_to_codon):
