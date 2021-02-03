@@ -1,67 +1,166 @@
 import itertools
+from typing import List, Sequence
 
-from synbio.annotations import Location
-from synbio.utils import aminoacids, dNTPs, rNTPs
-from z3 import Const, EnumSort, Function
+from synbio.annotations import Location, Part
+from synbio.utils import aminoacids, dNTPs, get_codons, rNTPs
+from z3 import BitVec, BitVecSort, Const, EnumSort, Function
+
+from z3helpers.typing import *
 
 __all__ = [
     # str values
     "triplet_dna_codons", "triplet_rna_codons", "aminoacids",
     # z3 Sorts and possible values
-    "NucleotideSort", "z3nucleotides", "CodonSort", "z3codons",
-    "AminoSort", "z3aminos", "STOP", "NULL",
+    "NucleotideEnumSort", "z3nucleotides", "CodonEnumSort", "z3codons",
+    "AminoEnumSort", "z3_enum_aminos", "STOP", "NULL",
+    "AminoBitVecSort", "z3_bitvec_aminos",
     # mappings from str to z3 values
-    "dna_to_z3codon", "rna_to_z3codon", "amino_to_z3amino",
+    "dna_to_z3codon", "dna_to_z3nucleotide", "rna_to_z3codon",
+    "amino_to_z3_enum_amino", "amino_to_z3_bitvec_amino",
     # z3 Functions
     "f_nuc_to_codon", "f_codon_to_amino", "f_nuc_to_amino",
-    # z3 Constant generating functions
-    "sequence_variables"
+    # z3 constant generating functions
+    "get_start", "get_stop", "get_null",
+    # z3 variable generating functions
+    "dna_variables", "protein_variables", "code_dict"
 ]
 
 # useful str collections
-triplet_dna_codons = [
+triplet_dna_codons: List[CodonRef] = [
     ''.join(codon_list)
     for codon_list in itertools.product(dNTPs, repeat=3)
 ]
-triplet_rna_codons = [
+triplet_rna_codons: List[CodonRef] = [
     ''.join(codon_list)
     for codon_list in itertools.product(rNTPs, repeat=3)
 ]
 aminoacids += ["0"]  # adds NULL
 
 # useful z3 Sorts
-NucleotideSort, z3nucleotides = EnumSort("Nucleotides", dNTPs)
-CodonSort, z3codons = EnumSort("Codons", triplet_dna_codons)
-AminoSort, z3aminos = EnumSort("Amino Acids", aminoacids)
+NucleotideEnumSort, z3nucleotides = EnumSort("Nucleotides",
+                                             [f"d{n}" for n in dNTPs])
+CodonEnumSort, z3codons = EnumSort("Codons", triplet_dna_codons)
+
+AminoEnumSort, z3_enum_aminos = EnumSort("Amino Acids", aminoacids)
+AminoBitVecSort = BitVecSort(21)
+z3_bitvec_aminos = [
+    BitVec((2 ** i) - 1, AminoBitVecSort)
+    for i in range(22)
+]
+"""
+TODO: convert AminoEnumSort to unate(?) form
+
+z3.BitVector OR z3.Bools("A T ... * 0".split())
+"""
+
 
 # z3amino definitions
-STOP, NULL = z3aminos[-2:]
+def get_start(aminos: Sequence[AminoRef] = z3_enum_aminos) -> AminoRef:
+    return aminos[6]
+
+
+START = z3_enum_aminos[6]
+assert str(START) == "M"
+
+
+def get_stop(aminos: Sequence[AminoRef] = z3_enum_aminos) -> AminoRef:
+    return aminos[-2]
+
+
+def get_null(aminos: Sequence[AminoRef] = z3_enum_aminos) -> AminoRef:
+    return aminos[-1]
+
+
+STOP, NULL = z3_enum_aminos[-2:]
+assert str(STOP) == "*"
+assert str(NULL) == "0"
 
 # python dicts to convert between str and z3 sorts
+# TODO: convert static dicts into functions that generate dicts based on
+#  which sorts to use (unary, EnumSort, raw Bools, etc)
 dna_to_z3codon = {
     str_codon: z3_codon
     for str_codon, z3_codon in zip(triplet_dna_codons, z3codons)
+}
+dna_to_z3nucleotide = {
+    str_nuc: z3nuc
+    for str_nuc, z3nuc in zip(dNTPs, z3nucleotides)
 }
 rna_to_z3codon = {
     str_codon: z3_codon
     for str_codon, z3_codon in zip(triplet_rna_codons, z3codons)
 }
-amino_to_z3amino = {
+amino_to_z3_enum_amino = {
     str_amino: z3_amino
-    for str_amino, z3_amino in zip(aminoacids, z3aminos)
+    for str_amino, z3_amino in zip(aminoacids, z3_enum_aminos)
+}
+amino_to_z3_bitvec_amino = {
+    str_amino: z3_bitvec_amino
+    for str_amino, z3_bitvec_amino in zip(aminoacids, z3_bitvec_aminos)
 }
 
 # z3 Functions
-f_nuc_to_codon = Function("nucleotides -> codons",
-                          NucleotideSort, NucleotideSort, NucleotideSort,
-                          CodonSort)
-f_codon_to_amino = Function("codons -> aminos", CodonSort, AminoSort)
-f_nuc_to_amino = Function("nucleotides -> aminos",
-                          NucleotideSort, NucleotideSort, NucleotideSort,
-                          AminoSort)
+f_nuc_to_codon = Function(
+    "nucleotides -> codons",
+    NucleotideEnumSort, NucleotideEnumSort, NucleotideEnumSort,
+    CodonEnumSort
+)
+f_codon_to_amino = Function("codons -> aminos", CodonEnumSort, AminoEnumSort)
+f_nuc_to_amino = Function(
+    "nucleotides -> aminos",
+    NucleotideEnumSort, NucleotideEnumSort, NucleotideEnumSort,
+    AminoEnumSort
+)
 
 
 # z3 Constant generating functions
-def sequence_variables(loc: Location):
-    return [Const(f"x{i}", NucleotideSort)
+def dna_variables(
+        loc: Location,
+        nucleotide_sort: NucleotideSort = NucleotideEnumSort
+) -> List[NucleotideRef]:
+    """
+    Creates dna variables for each nucleotide at Location loc:
+
+    :param loc:
+    :param nucleotide_sort:
+    :return dna_variables:
+    """
+    return [Const(f"dna_{i}", nucleotide_sort)
             for i in range(loc.start, loc.end)]
+
+
+def protein_variables(
+        part: Part,
+        amino_sort: AminoSort = AminoEnumSort
+):
+    """
+    A function that generates z3 variables corresponding to the amino acid
+    sequence of the translated Part
+
+    :param part:
+    :param amino_sort:
+    :return:
+    """
+    name = part.name
+    codons = get_codons(part.seq)
+
+    return [
+        Const(f"{name}_{i + 1}", amino_sort)
+        for i in range(len(codons))
+    ]
+
+
+def code_dict(codons: Sequence[CodonRef] = triplet_dna_codons,
+              amino_sort: AminoSort = AminoEnumSort) -> CodeRef:
+    """
+    A function that returns a python Dict[str -> AminoRef] mapping DNA codons
+    to amino acids
+
+    :param codons:
+    :param amino_sort:
+    :return code:
+    """
+    return {
+        codon: Const(f"T({codon})", amino_sort)
+        for codon in codons
+    }
