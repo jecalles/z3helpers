@@ -1,4 +1,5 @@
 from typing import Union, Dict, Sequence
+from typing import NewType
 
 from z3 import (
     FuncDeclRef, BitVecRef, DatatypeRef, BoolRef,
@@ -19,7 +20,6 @@ __all__ = [
     "NucleotideSort", "AminoSort", "CodonSort",
     "SolverType"
 ]
-
 NucleotideRef = Union[str, DNA, DatatypeRef, BitVecRef]
 NucleotideSort = Union[str, DNA, DatatypeSortRef, BitVecSortRef]
 

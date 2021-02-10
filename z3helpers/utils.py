@@ -1,12 +1,14 @@
-from typing import Iterable, Sequence, Dict, Optional
+from typing import Dict, Iterable, Optional, Sequence
 
 from z3helpers.definitions import *
 from z3helpers.typing import *
+
 
 def rmap(dict_):
     return {
         value: key for key, value in dict_.items()
     }
+
 
 def z3nuc_to_str(
         nucleotide_list: Sequence[NucleotideRef],
@@ -16,10 +18,12 @@ def z3nuc_to_str(
 
     return ''.join(rmap_[nuc] for nuc in nucleotide_list)
 
+
 def z3codon_to_str(codon: CodonRef,
                    mapping: Dict[str, CodonRef] = dna_to_z3codon) -> str:
     rmap_ = rmap(mapping)
     return rmap_[codon]
+
 
 def z3amino_to_str(amino: AminoRef,
                    mapping: Optional[Dict[str, CodonRef]] = None):
@@ -50,13 +54,13 @@ def decode(T: CodeRef, key: CodonRef) -> AminoRef:
     'M'
     """
     if isinstance(T, dict):
-        if isinstance(key, DatatypeRef):    # of CodonRef type
-           key = z3codon_to_str(key)
+        if isinstance(key, DatatypeRef):  # of CodonRef type
+            key = z3codon_to_str(key)
 
-        elif isinstance(key[0], DatatypeRef):   # list of NucleotideRef
+        elif isinstance(key[0], DatatypeRef):  # list of NucleotideRef
             key = z3nuc_to_str(key)
 
-        amino = T[key]                      # try direct indexing with key
+        amino = T[key]  # try direct indexing with key
 
     elif isinstance(T, FuncDeclRef):
         if T.arity() == 1:  # accepts codons
@@ -70,6 +74,7 @@ def decode(T: CodeRef, key: CodonRef) -> AminoRef:
         raise TypeError("T is not of type CodeRef")
 
     return amino
+
 
 def add_constraints(solver: SolverType,
                     constraints: Iterable,
