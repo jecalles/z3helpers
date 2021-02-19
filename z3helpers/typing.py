@@ -20,20 +20,24 @@ __all__ = [
     "NucleotideSort", "AminoSort", "CodonSort",
     "SolverType"
 ]
-NucleotideRef = Union[str, DNA, DatatypeRef, BitVecRef]
-NucleotideSort = Union[str, DNA, DatatypeSortRef, BitVecSortRef]
+NucleotideRef = NewType("NucleotideRef",
+                        Union[str, DNA, DatatypeRef, BitVecRef])
+NucleotideSort = NewType("NucleotideSort",
+                         Union[str, DNA, DatatypeSortRef, BitVecSortRef])
 
-AminoRef = Union[str, Protein, DatatypeRef, BitVecRef]
-AminoSort = Union[str, Protein, DatatypeSortRef, BitVecSortRef]
+AminoRef = NewType("AminoRef", Union[str, Protein, DatatypeRef, BitVecRef])
+AminoSort = NewType("AminoSort",
+                    Union[str, Protein, DatatypeSortRef, BitVecSortRef])
 
-CodonRef = Union[NucleotideRef, Sequence[NucleotideRef]]
-CodonSort = Union[NucleotideSort, Sequence[NucleotideSort]]
+CodonRef = NewType("CodonRef", Union[NucleotideRef, Sequence[NucleotideRef]])
+CodonSort = NewType("CodonSort",
+                    Union[NucleotideSort, Sequence[NucleotideSort]])
 
 # codes are either dict[codon --> amino] or z3.Function
-CodeRef = Union[Dict[CodonRef, AminoRef], Code, FuncDeclRef]
+CodeRef = NewType("CodeRef", Union[Dict[CodonRef, AminoRef], Code, FuncDeclRef])
 
 # constraints are either bool or z3.BoolRef
-ConstraintRef = Union[bool, BoolRef]
+ConstraintRef = NewType("ConstraintRef", Union[bool, BoolRef])
 
 # SolverType is either z3.Solver or z3.Optimize
-SolverType = Union[Solver, Optimize]
+SolverType = NewType("SolverType", Union[Solver, Optimize])
