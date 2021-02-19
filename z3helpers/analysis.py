@@ -50,3 +50,18 @@ def prot_from_model(prot_varibles, model):
     return Protein(
         ''.join(prot_seq)
     )
+
+
+def objective_function(out_seq, wt_seq, weights=None):
+    if weights is None:
+        weights = [1] * len(out_seq)
+
+    matches = (
+        str(a1) == str(a2)
+        for a1, a2 in zip(out_seq, wt_seq)
+    )
+
+    return sum(
+        match * weight
+        for match, weight in zip(matches, weights)
+    )
