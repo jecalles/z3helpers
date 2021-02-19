@@ -151,20 +151,38 @@ def exactly_one_codon_per_amino(
 
 def compatible_with_standard_code(
         T: CodeRef,
-        codons: Sequence[CodonRef] = triplet_dna_codons,
+        dna_codons: Sequence[CodonRef] = triplet_dna_codons,
         aminos: Sequence[AminoRef] = z3_enum_aminos,
         amino_dict: Dict[str, AminoRef] = amino_to_z3_enum_amino
 ) -> List[ConstraintRef]:
     NULL = get_null(aminos)
-    sc = Code()
-    dna_rna_codons = zip(codons, triplet_rna_codons)
+    dna_to_rna = dict(zip(dna_codons, triplet_rna_codons))
+    sc = {
+        codon: amino_dict[Code()[dna_to_rna[codon]]]
+        for codon in dna_codons
+    }
 
     return [
-        Or(decode(T, dna_codon) == amino_dict[sc[rna_codon]],
-           decode(T, dna_codon) == NULL)
-        for dna_codon, rna_codon in dna_rna_codons
+        Or(decode(T, codon) == sc[codon],
+           decode(T, codon) == NULL)
+        for codon in dna_codons
     ]
 
+def standard_code(
+        T: CodeRef,
+        dna_codons: Sequence[CodonRef] = triplet_dna_codons,
+        amino_dict: Dict[str, AminoRef] = amino_to_z3_enum_amino
+) -> List[ConstraintRef]:
+    dna_to_rna = dict(zip(dna_codons, triplet_rna_codons))
+    sc = {
+        codon: amino_dict[Code()[dna_to_rna[codon]]]
+        for codon in dna_codons
+    }
+
+    return [
+        decode(T, codon) == sc[codon]
+        for codon in triplet_dna_codons
+    ]
 
 # define sequence based constraints
 def translation_constraints(
