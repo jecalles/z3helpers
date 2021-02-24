@@ -155,22 +155,19 @@ def compatible_with_standard_code(
         aminos: Sequence[AminoRef] = z3_enum_aminos,
         amino_dict: Dict[str, AminoRef] = amino_to_z3_enum_amino
 ) -> List[ConstraintRef]:
-    NULL = get_null(aminos)
-    dna_to_rna = dict(zip(dna_codons, triplet_rna_codons))
-    sc = {
-        codon: amino_dict[Code()[dna_to_rna[codon]]]
-        for codon in dna_codons
-    }
+    null = get_null(aminos)
+
+    sc_constraints = standard_code(T, dna_codons, amino_dict)
 
     return [
-        Or(decode(T, codon) == sc[codon],
-           decode(T, codon) == NULL)
-        for codon in dna_codons
+        Or(sc_const, decode(T, codon) == null)
+        for codon, sc_const in zip(dna_codons, sc_constraints)
     ]
 
 def standard_code(
         T: CodeRef,
         dna_codons: Sequence[CodonRef] = triplet_dna_codons,
+        # codon_dict: Dict[str, NucleotideRef] = dna_to_z3codon,
         amino_dict: Dict[str, AminoRef] = amino_to_z3_enum_amino
 ) -> List[ConstraintRef]:
     dna_to_rna = dict(zip(dna_codons, triplet_rna_codons))
@@ -181,7 +178,7 @@ def standard_code(
 
     return [
         decode(T, codon) == sc[codon]
-        for codon in triplet_dna_codons
+        for codon in dna_codons
     ]
 
 # define sequence based constraints
@@ -278,7 +275,7 @@ def FS20(
 ) -> List[ConstraintRef]:
     constraints = exactly_one_codon_per_amino(T, codons, aminos)
     # if T is a Function, add true nucleotide -> codon mapping
-    if isinstance(T, FuncDeclRef):
+    if isinstance(T, FuncDeclRef) and T.arity() == 1:
         constraints += f_codon_true_mapping(f_codon)
 
     return constraints
