@@ -37,7 +37,6 @@ def z3amino_to_str(amino: AminoRef,
     return rmap_[amino]
 
 
-# TODO: add string parsing for key
 def decode(T: CodeRef, key: CodonRef) -> AminoRef:
     """
     A method used to get amino acids from a CodeRef type object, given a
@@ -49,7 +48,10 @@ def decode(T: CodeRef, key: CodonRef) -> AminoRef:
 
     >>> decode(f_codon_to_amino, z3codons[3])
     codons -> aminos(TTG)
-    >>> decode(f_nuc_to_amino, (z3nucleotides[0], z3nucleotides[1], z3nucleotides[2]))
+    >>> decode(
+    ...     f_nuc_to_amino,
+    ...     (z3nucleotides[0], z3nucleotides[1], z3nucleotides[2])
+    ... )
     nucleotides -> aminos(dT, dC, dA)
     >>> decode(Code(), "AUG")
     'M'
@@ -88,9 +90,20 @@ def decode(T: CodeRef, key: CodonRef) -> AminoRef:
 
 
 def add_constraints(solver: SolverType,
-                    constraints: Iterable,
+                    constraints: Sequence[ConstraintRef],
+                    weights: Optional[Sequence[int]] = None,
                     hard: bool = True) -> None:
     method = solver.add if hard else solver.add_soft
+
+    if hard:
+        for constr in constraints:
+            solver.add(constr)
+    else:
+        if weights is None:
+            weights = (1 for _ in len(constraints))
+        for constr, w in zip(constraints, weights):
+            solver.add_soft(constr, weight=w)
+
 
     for constr in constraints:
         method(constr)

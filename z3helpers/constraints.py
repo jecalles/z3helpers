@@ -164,6 +164,7 @@ def compatible_with_standard_code(
         for codon, sc_const in zip(dna_codons, sc_constraints)
     ]
 
+
 def standard_code(
         T: CodeRef,
         dna_codons: Sequence[CodonRef] = triplet_dna_codons,
@@ -180,6 +181,7 @@ def standard_code(
         decode(T, codon) == sc[codon]
         for codon in dna_codons
     ]
+
 
 # define sequence based constraints
 def translation_constraints(
@@ -254,6 +256,19 @@ def translation_constraints(
            code_implications
 
 
+def same_sequence(
+        dna_variables: Sequence[NucleotideRef],
+        wt_sequence: str
+) -> List[ConstraintRef]:
+    seq_in_z3nucleotides = (
+        dna_to_z3nucleotide[n] for n in wt_sequence
+    )
+    return [
+        variable == wt_value
+        for variable, wt_value in zip(dna_variables, seq_in_z3nucleotides)
+    ]
+
+
 def translates_same(
         prot_variables: Sequence[AminoRef],
         part: Part,
@@ -265,6 +280,7 @@ def translates_same(
         var_aa == amino_dict[wt_aa]
         for var_aa, wt_aa in zip(prot_variables, prot_seq)
     ]
+
 
 # bundled constraints
 def FS20(
