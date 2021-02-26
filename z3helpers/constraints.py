@@ -2,12 +2,23 @@ import itertools
 from typing import Dict, List, Optional, Sequence
 
 from synbio.annotations import Location, Part
-from synbio.utils import get_codons
-from z3 import And, BitVecVal, Extract, Implies, Or, PbEq, PbLe
+from z3 import BitVecVal, Extract, Implies, Or, PbEq, PbLe
 
 from z3helpers.definitions import *
 from z3helpers.typing import *
 from z3helpers.utils import decode
+
+__all__ = [
+    # general constraints
+    "this_many_true", "f_codon_true_mapping", "amino_bitvec_unary_restriction",
+    # code related constraints
+    "at_least_one_codon_per_amino", "at_most_one_codon_per_amino",
+    "exactly_one_codon_per_amino", "compatible_with_standard_code",
+    # translation constraints
+    "translates_same", "translation_constraints",
+    # code definitions
+    "standard_code", "FS20", "RED20"
+]
 
 
 # general constraints
@@ -165,24 +176,6 @@ def compatible_with_standard_code(
     ]
 
 
-def standard_code(
-        T: CodeRef,
-        dna_codons: Sequence[CodonRef] = triplet_dna_codons,
-        # codon_dict: Dict[str, NucleotideRef] = dna_to_z3codon,
-        amino_dict: Dict[str, AminoRef] = amino_to_z3_enum_amino
-) -> List[ConstraintRef]:
-    dna_to_rna = dict(zip(dna_codons, triplet_rna_codons))
-    sc = {
-        codon: amino_dict[Code()[dna_to_rna[codon]]]
-        for codon in dna_codons
-    }
-
-    return [
-        decode(T, codon) == sc[codon]
-        for codon in dna_codons
-    ]
-
-
 # define sequence based constraints
 def translation_constraints(
         T: CodeRef,
@@ -216,12 +209,6 @@ def translation_constraints(
     STOP = get_stop(aminos)
     NULL = get_null(aminos)
 
-    # locations
-    begin = location.start - offset
-    end = location.end - offset
-
-    codon_variable_list = get_codons(dna_variables[begin:end])
-
     # ensure proteins start with Met
     start_constraints = []
     if start_flag:
@@ -241,19 +228,8 @@ def translation_constraints(
     else:
         stop_constraints += [prot_variables[-1] != STOP]
 
-    code_implications = [
-        # TODO: try refactoring to create intermediate variables
-        # TODO: refactor to generalize over Sorts
-        Implies(And(codon_variable[0] == z3codon[0],
-                    codon_variable[1] == z3codon[1],
-                    codon_variable[2] == z3codon[2]),
-                z3amino == decode(T, z3codon))
-        for codon_variable, z3amino in zip(codon_variable_list, prot_variables)
-        for z3codon in itertools.product(nucleotides, repeat=3)
-    ]
 
-    return start_constraints + stop_constraints + null_constraints + \
-           code_implications
+    return start_constraints + stop_constraints + null_constraints
 
 
 def same_sequence(
@@ -274,6 +250,7 @@ def translates_same(
         part: Part,
         amino_dict: Dict[str, AminoRef] = amino_to_z3_enum_amino
 ) -> List[ConstraintRef]:
+
     prot_seq = str(part.seq.translate())
 
     return [
@@ -282,7 +259,24 @@ def translates_same(
     ]
 
 
-# bundled constraints
+# code definitions
+def standard_code(
+        T: CodeRef,
+        codons: Sequence[CodonRef] = triplet_dna_codons,
+        amino_dict: Dict[str, AminoRef] = amino_to_z3_enum_amino
+) -> List[ConstraintRef]:
+    dna_to_rna = dict(zip(codons, triplet_rna_codons))
+    sc = {
+        codon: amino_dict[Code()[dna_to_rna[codon]]]
+        for codon in codons
+    }
+
+    return [
+        decode(T, codon) == sc[codon]
+        for codon in codons
+    ]
+
+
 def FS20(
         T: CodeRef,
         f_codon: FuncDeclRef = f_nuc_to_codon,

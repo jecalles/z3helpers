@@ -3,6 +3,11 @@ from typing import Dict, Iterable, Optional, Sequence
 from z3helpers.definitions import *
 from z3helpers.typing import *
 
+__all__ = [
+    "rmap", "z3nuc_to_str", "z3codon_to_str", "z3amino_to_str",
+    "decode", "add_constraints"
+]
+
 
 def rmap(dict_):
     return {
@@ -100,10 +105,9 @@ def add_constraints(solver: SolverType,
             solver.add(constr)
     else:
         if weights is None:
-            weights = (1 for _ in len(constraints))
+            weights = (1 for _ in range(len(constraints)))
         for constr, w in zip(constraints, weights):
             solver.add_soft(constr, weight=w)
-
 
     for constr in constraints:
         method(constr)
