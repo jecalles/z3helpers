@@ -46,11 +46,6 @@ z3_bitvec_aminos = [
     BitVec((2 ** i) - 1, AminoBitVecSort)
     for i in range(22)
 ]
-"""
-TODO: convert AminoEnumSort to unate(?) form
-
-z3.BitVector OR z3.Bools("A T ... * 0".split())
-"""
 
 
 # z3amino definitions

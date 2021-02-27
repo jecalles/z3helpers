@@ -1,8 +1,9 @@
 from synbio.codes import Code
 from synbio.polymers import DNA
 
-from z3helpers.definitions import dna_to_z3nucleotide
-from z3helpers.utils import rmap
+from z3helpers.definitions import dna_to_z3nucleotide, triplet_dna_codons
+from z3helpers.utils import rmap, decode
+from z3helpers.typing import *
 
 __all__ = [
     # extract variables from model
@@ -12,17 +13,46 @@ __all__ = [
 ]
 
 
-def code_from_model(code_dict, model):
+def code_from_model(code: CodeRef, model) -> Code:
     def rna(dna): return dna.replace("T", "U")
-    def amino(codon): return str(model[code_dict[codon]])
 
-    dict_ = {
-        rna(codon): amino(codon) for codon in code_dict.keys()
-    }
+    if isinstance(code, dict):
+        def amino(codon): return str(model[decode(code, codon)])
+
+        dict_ = {
+            rna(codon): amino(codon) for codon in code.keys()
+        }
+    elif isinstance(code, FuncDeclRef):
+        code_as_list = model[code].as_list()
+        null = str(code_as_list[-1])
+
+        if code.arity() == 3:
+            codons_and_aminos_chunked = (
+                (tuple(args[:3]), args[-1])
+                for args in code_as_list[:-1]
+            )
+            codon_tuples, aminos = zip(*codons_and_aminos_chunked)
+
+            def codon_from_tuple(tup):
+                return ''.join(
+                    rmap(dna_to_z3nucleotide)[n]
+                    for n in tup
+                )
+            codons = map(codon_from_tuple, codon_tuples)
+        else:
+            codons, aminos = zip(*code_as_list[:-1])
+
+        dict_ = {rna(codon): null for codon in triplet_dna_codons}
+        update = {
+            rna(str(codon)): str(amino)
+            for codon, amino in zip(codons, aminos)
+        }
+        dict_.update(update)
+
+    else:
+        raise ValueError("code is not of type CodeRef")
 
     return Code(dict_)
-
-
 
 
 def dna_from_model(dna_variables, model):

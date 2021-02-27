@@ -1,8 +1,11 @@
 import itertools
 from typing import Dict, List, Optional, Sequence
 
+from synbio.utils import get_codons
+from synbio.codes import Code
 from synbio.annotations import Location, Part
-from z3 import BitVecVal, Extract, Implies, Or, PbEq, PbLe
+
+from z3 import BitVecVal, Extract, Implies, And, Or, PbEq, PbLe
 
 from z3helpers.definitions import *
 from z3helpers.typing import *
@@ -16,6 +19,8 @@ __all__ = [
     "exactly_one_codon_per_amino", "compatible_with_standard_code",
     # translation constraints
     "translates_same", "translation_constraints",
+    # dna sequence constraints
+    "same_sequence",
     # code definitions
     "standard_code", "FS20", "RED20"
 ]
@@ -228,8 +233,24 @@ def translation_constraints(
     else:
         stop_constraints += [prot_variables[-1] != STOP]
 
+    if isinstance(T, dict):
+        start = location.start - offset
+        end = location.end - offset
+        codon_variables = get_codons(dna_variables[start:end])
 
-    return start_constraints + stop_constraints + null_constraints
+        code_implications = [
+            Implies(And(codon_variable[0] == z3codon[0],
+                        codon_variable[1] == z3codon[1],
+                        codon_variable[2] == z3codon[2]),
+                    z3amino == decode(T, z3codon))
+            for codon_variable, z3amino in zip(codon_variables, prot_variables)
+            for z3codon in itertools.product(nucleotides, repeat=3)
+        ]
+    else:
+        code_implications = []
+
+    return start_constraints + stop_constraints \
+           + null_constraints + code_implications
 
 
 def same_sequence(

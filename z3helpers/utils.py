@@ -62,7 +62,9 @@ def decode(T: CodeRef, key: CodonRef) -> AminoRef:
     'M'
     """
     if isinstance(T, dict):
-        if isinstance(key, DatatypeRef):  # of CodonRef type
+        if isinstance(key, str):
+            pass
+        elif isinstance(key, DatatypeRef):  # of CodonRef type
             key = z3codon_to_str(key)
         elif isinstance(key[0], DatatypeRef):  # list of NucleotideRef
             key = z3nuc_to_str(key)
@@ -75,11 +77,11 @@ def decode(T: CodeRef, key: CodonRef) -> AminoRef:
         # convert string keys into z3 defs
         if isinstance(key, str):
             key = dna_to_z3codon[key]
-        elif isinstance(key, Iterable) and isinstance(key[0], str):
+        elif isinstance(key, Sequence) and isinstance(key[0], str):
             key = (dna_to_z3nucleotide[n] for n in key)
 
         if T.arity() == 1:  # accepts codons
-            if isinstance(key, Iterable):
+            if isinstance(key, Sequence):
                 amino = T(f_nuc_to_codon(*key))
             else:
                 amino = T(key)

@@ -4,7 +4,7 @@ from typing import NewType
 from z3 import (
     FuncDeclRef, BitVecRef, DatatypeRef, BoolRef,
     DatatypeSortRef, BitVecSortRef,
-    Solver, Optimize
+    Solver, Optimize,
 )
 from synbio.codes import Code
 from synbio.polymers import DNA, Protein
@@ -13,8 +13,6 @@ __all__ = [
     # z3 defined classes
     "FuncDeclRef", "BitVecRef", "DatatypeRef", "BoolRef",
     "DatatypeSortRef", "BitVecSortRef",
-    # synbio defined classes
-    "DNA", "Protein", "Code",
     # user defined types
     "NucleotideRef", "AminoRef", "CodonRef", "CodeRef", "ConstraintRef",
     "NucleotideSort", "AminoSort", "CodonSort",

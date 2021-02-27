@@ -11,7 +11,7 @@ from z3helpers.utils import decode
 
 __all__ = [
     # z3 variable generating functions
-    "dna_variables", "protein_variables"
+    "dna_variables", "protein_variables", "code_dict"
 ]
 
 
@@ -35,16 +35,49 @@ def protein_variables(
         seq_variables: Sequence[NucleotideRef],
         part: Part,
         offset: int = 0,
+        amino_sort: AminoSort = AminoEnumSort,
 ) -> List[AminoRef]:
     """
     A function that generates z3 variables corresponding to the amino acid
     sequence of the translated Part
 
-   """
+    """
     begin = part.location.start - offset
     end = part.location.end - offset
 
-    return [
-        decode(T, codon)
-        for codon in get_codons(seq_variables[begin:end])
-    ]
+    codons = get_codons(seq_variables[begin:end])
+    if isinstance(T, dict):
+        prot_seq = [
+            Const(f"{part.name}_{i}", amino_sort)
+            for i, _ in enumerate(codons)
+        ]
+
+    elif isinstance(T, FuncDeclRef):
+        begin = part.location.start - offset
+        end = part.location.end - offset
+
+        prot_seq = [
+            decode(T, codon)
+            for codon in codons
+        ]
+
+    else:
+        raise TypeError(f"T is not of type CodeRef")
+
+    return prot_seq
+
+
+def code_dict(codons: Sequence[CodonRef] = triplet_dna_codons,
+              amino_sort: AminoSort = AminoEnumSort) -> CodeRef:
+    """
+    A function that returns a python Dict[str -> AminoRef] mapping DNA codons
+    to amino acids
+
+    :param codons:
+    :param amino_sort:
+    :return code:
+    """
+    return {
+        codon: Const(f"T({codon})", amino_sort)
+        for codon in codons
+    }
