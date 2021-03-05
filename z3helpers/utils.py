@@ -1,4 +1,5 @@
 from typing import Dict, Iterable, Optional, Sequence
+import itertools
 
 from z3helpers.definitions import *
 from z3helpers.typing import *
@@ -100,18 +101,15 @@ def add_constraints(solver: SolverType,
                     constraints: Sequence[ConstraintRef],
                     weights: Optional[Sequence[int]] = None,
                     hard: bool = True) -> None:
-    method = solver.add if hard else solver.add_soft
 
     if hard:
         for constr in constraints:
             solver.add(constr)
     else:
         if weights is None:
-            weights = (1 for _ in range(len(constraints)))
+            weights = itertools.repeat(1)
+
         for constr, w in zip(constraints, weights):
             solver.add_soft(constr, weight=w)
-
-    for constr in constraints:
-        method(constr)
 
     return

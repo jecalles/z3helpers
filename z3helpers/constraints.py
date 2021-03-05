@@ -17,6 +17,7 @@ __all__ = [
     # code related constraints
     "at_least_one_codon_per_amino", "at_most_one_codon_per_amino",
     "exactly_one_codon_per_amino", "compatible_with_standard_code",
+    "specific_code",
     # translation constraints
     "translates_same", "translation_constraints",
     # dna sequence constraints
@@ -84,8 +85,6 @@ def amino_bitvec_unary_restriction(
 
 
 # hard constraints on Genetic Codes
-
-
 def at_least_one_codon_per_amino(
         T: CodeRef,
         codons: Sequence[CodonRef] = z3codons,
@@ -167,17 +166,35 @@ def exactly_one_codon_per_amino(
 
 def compatible_with_standard_code(
         T: CodeRef,
-        dna_codons: Sequence[CodonRef] = triplet_dna_codons,
+        codons: Sequence[CodonRef] = triplet_dna_codons,
         aminos: Sequence[AminoRef] = z3_enum_aminos,
         amino_dict: Dict[str, AminoRef] = amino_to_z3_enum_amino
 ) -> List[ConstraintRef]:
     null = get_null(aminos)
 
-    sc_constraints = standard_code(T, dna_codons, amino_dict)
+    sc_constraints = standard_code(T, codons, amino_dict)
 
     return [
         Or(sc_const, decode(T, codon) == null)
-        for codon, sc_const in zip(dna_codons, sc_constraints)
+        for codon, sc_const in zip(codons, sc_constraints)
+    ]
+
+
+def specific_code(
+        T: CodeRef,
+        code: Code,
+        codons: Sequence[CodonRef] = triplet_dna_codons,
+        amino_dict: Dict[str, AminoRef] = amino_to_z3_enum_amino
+) -> List[ConstraintRef]:
+    dna_to_rna = dict(zip(codons, triplet_rna_codons))
+    z3_code = {
+        codon: amino_dict[code[dna_to_rna[codon]]]
+        for codon in codons
+    }
+
+    return [
+        decode(T, codon) == z3_code[codon]
+        for codon in codons
     ]
 
 
