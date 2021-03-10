@@ -16,14 +16,14 @@ __all__ = [
     "this_many_true", "f_codon_true_mapping", "amino_bitvec_unary_restriction",
     # code related constraints
     "at_least_one_codon_per_amino", "at_most_one_codon_per_amino",
-    "exactly_one_codon_per_amino", "compatible_with_standard_code",
-    "specific_code",
+    "exactly_one_codon_per_amino", "n_sense_codons", "keep_all_stops",
+    "compatible_with_standard_code", "specific_code",
     # translation constraints
     "translates_same", "translation_constraints",
     # dna sequence constraints
     "same_sequence",
     # code definitions
-    "standard_code", "FS20", "RED20"
+    "standard_code", "FS20", "FSN", "RED20", "REDN"
 ]
 
 
@@ -161,6 +161,47 @@ def exactly_one_codon_per_amino(
     return [
         PbEq([(decode(T, c) == aa, 1) for c in codons], k=1)
         for aa in aminos if aa not in exclude
+    ]
+
+
+def n_sense_codons(
+        T: CodeRef,
+        n_codons: int,
+        codons: Sequence[CodonRef] = z3codons,
+        aminos: Sequence[AminoRef] = z3_enum_aminos,
+        exclude: Optional[AminoRef] = None
+) -> List[ConstraintRef]:
+    if exclude is None:
+        exclude = (get_null(aminos), get_stop(aminos))
+    return [PbEq(
+        [
+            (And([decode(T, c) != aa for aa in exclude]), 1)
+            for c in codons
+        ], k=n_codons
+    )]
+
+
+def keep_all_stops(
+        T: CodeRef,
+        codons: Sequence[CodonRef] = triplet_dna_codons,
+        aminos: Sequence[AminoRef] = z3_enum_aminos,
+        amino_dict: Dict[str, AminoRef] = amino_to_z3_enum_amino
+) -> List[ConstraintRef]:
+    stop = get_stop(aminos)
+    sc = Code()
+
+    dna_to_rna = dict(zip(codons, triplet_rna_codons))
+    def get_amino(codon): return amino_dict[sc[dna_to_rna[codon]]]
+
+    stop_codons = {
+        codon: get_amino(codon)
+        for codon in codons
+        if get_amino(codon) == stop
+    }
+
+    return [
+        decode(T, stop_codon) == stop
+        for stop_codon in stop_codons.keys()
     ]
 
 
@@ -329,6 +370,23 @@ def FS20(
     return constraints
 
 
+def FSN(
+        T: CodeRef,
+        N: int,
+        f_codon: FuncDeclRef = f_nuc_to_codon,
+        codons: Sequence[CodonRef] = z3codons,
+        aminos: Sequence[AminoRef] = z3_enum_aminos,
+) -> List[ConstraintRef]:
+    constraints = at_least_one_codon_per_amino(T, codons, aminos) \
+                    + n_sense_codons(T, N, codons=codons)
+
+    # if T is a Function, add true nucleotide -> codon mapping
+    if isinstance(T, FuncDeclRef) and T.arity() == 1:
+        constraints += f_codon_true_mapping(f_codon)
+
+    return constraints
+
+
 def RED20(
         T: CodeRef,
         f_codon: FuncDeclRef = f_nuc_to_codon,
@@ -336,5 +394,19 @@ def RED20(
         aminos: Sequence[AminoRef] = z3_enum_aminos,
         amino_dict: Dict[str, AminoRef] = amino_to_z3_enum_amino
 ) -> List[ConstraintRef]:
-    return FS20(T, f_codon, codons, aminos) + compatible_with_standard_code(
-        T, codons, aminos, amino_dict)
+    return FS20(T, f_codon, codons, aminos) \
+           + compatible_with_standard_code(T, codons, aminos, amino_dict) \
+           + keep_all_stops(T, codons, aminos, amino_dict)
+
+
+def REDN(
+        T: CodeRef,
+        N: int,
+        f_codon: FuncDeclRef = f_nuc_to_codon,
+        codons: Sequence[CodonRef] = z3codons,
+        aminos: Sequence[AminoRef] = z3_enum_aminos,
+        amino_dict: Dict[str, AminoRef] = amino_to_z3_enum_amino
+) -> List[ConstraintRef]:
+    return FSN(T, N, f_codon, codons, aminos) \
+            + compatible_with_standard_code(T, codons, aminos, amino_dict) \
+            + keep_all_stops(T, codons, aminos, amino_dict)
