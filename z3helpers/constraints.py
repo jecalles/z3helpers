@@ -329,7 +329,7 @@ def same_sequence(
 def translates_same(
         prot_variables: Sequence[AminoRef],
         part: Part,
-        amino_dict: Dict[str, AminoRef] = amino_to_z3_enum_amino
+        amino_dict: Dict[str, AminoRef] = amino_to_z3_bv_amino
 ) -> List[ConstraintRef]:
 
     prot_seq = str(part.seq.translate())
@@ -344,7 +344,7 @@ def translates_same(
 def standard_code(
         T: CodeRef,
         codons: Sequence[CodonRef] = triplet_dna_codons,
-        amino_dict: Dict[str, AminoRef] = amino_to_z3_enum_amino
+        amino_dict: Dict[str, AminoRef] = amino_to_z3_bv_amino
 ) -> List[ConstraintRef]:
     dna_to_rna = dict(zip(codons, triplet_rna_codons))
     sc = {
@@ -361,7 +361,7 @@ def standard_code(
 def FS20(
         T: CodeRef,
         f_codon: FuncDeclRef = f_nuc_to_codon,
-        codons: Sequence[CodonRef] = z3_enum_codons,
+        codons: Sequence[CodonRef] = triplet_z3_bitvec_nucleotides,
         aminos: Sequence[AminoRef] = z3_bitvec_aminos,
 ) -> List[ConstraintRef]:
     constraints = exactly_one_codon_per_amino(T, codons, aminos)
@@ -376,7 +376,7 @@ def FSN(
         T: CodeRef,
         N: int,
         f_codon: FuncDeclRef = f_nuc_to_codon,
-        codons: Sequence[CodonRef] = z3_enum_codons,
+        codons: Sequence[CodonRef] = triplet_z3_bitvec_nucleotides,
         aminos: Sequence[AminoRef] = z3_bitvec_aminos,
 ) -> List[ConstraintRef]:
     constraints = at_least_one_codon_per_amino(T, codons, aminos) \
@@ -392,9 +392,9 @@ def FSN(
 def RED20(
         T: CodeRef,
         f_codon: FuncDeclRef = f_nuc_to_codon,
-        codons: Sequence[CodonRef] = z3_enum_codons,
+        codons: Sequence[CodonRef] = triplet_z3_bitvec_nucleotides,
         aminos: Sequence[AminoRef] = z3_bitvec_aminos,
-        amino_dict: Dict[str, AminoRef] = amino_to_z3_enum_amino
+        amino_dict: Dict[str, AminoRef] = amino_to_z3_bv_amino
 ) -> List[ConstraintRef]:
     return FS20(T, f_codon, codons, aminos) \
            + compatible_with_standard_code(T, codons, aminos, amino_dict) \
@@ -405,9 +405,9 @@ def REDN(
         T: CodeRef,
         N: int,
         f_codon: FuncDeclRef = f_nuc_to_codon,
-        codons: Sequence[CodonRef] = z3_enum_codons,
+        codons: Sequence[CodonRef] = triplet_z3_bitvec_nucleotides,
         aminos: Sequence[AminoRef] = z3_bitvec_aminos,
-        amino_dict: Dict[str, AminoRef] = amino_to_z3_enum_amino
+        amino_dict: Dict[str, AminoRef] = amino_to_z3_bv_amino
 ) -> List[ConstraintRef]:
     return FSN(T, N, f_codon, codons, aminos) \
             + compatible_with_standard_code(T, codons, aminos, amino_dict) \

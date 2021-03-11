@@ -1,3 +1,6 @@
+from typing import Sequence, Optional
+from z3 import ModelObj
+
 from synbio.codes import Code
 from synbio.polymers import DNA
 
@@ -15,7 +18,7 @@ __all__ = [
 ]
 
 
-def code_from_model(code: CodeRef, model) -> Code:
+def code_from_model(code: CodeRef, model: ModelObj) -> Code:
     def rna(dna): return dna.replace("T", "U")
 
     if isinstance(code, dict):
@@ -61,7 +64,10 @@ def code_from_model(code: CodeRef, model) -> Code:
     return Code(dict_)
 
 
-def dna_from_model(dna_variables, model):
+def dna_from_model(
+        dna_variables: Sequence[NucleotideRef],
+        model: ModelObj
+) -> DNA:
     class AmbiguousDNA(DNA):
         basepairing = {
             k: v for k, v in DNA.basepairing.items()
@@ -92,7 +98,11 @@ def dna_from_model(dna_variables, model):
     return out_seq
 
 
-def objective_function(out_seq, wt_seq, weights=None):
+def objective_function(
+        out_seq: Sequence,
+        wt_seq: Sequence,
+        weights: Optional[Sequence[int]] = None
+) -> int:
     if weights is None:
         weights = [1] * len(out_seq)
 

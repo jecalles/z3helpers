@@ -1,5 +1,5 @@
 from typing import Union, Dict, Sequence
-from typing import NewType
+from typing import TypeVar
 
 from z3 import (
     FuncDeclRef, BitVecRef, DatatypeRef, BoolRef,
@@ -18,24 +18,21 @@ __all__ = [
     "NucleotideSort", "AminoSort", "CodonSort",
     "SolverType"
 ]
-NucleotideRef = NewType("NucleotideRef",
-                        Union[str, DNA, DatatypeRef, BitVecRef])
-NucleotideSort = NewType("NucleotideSort",
-                         Union[str, DNA, DatatypeSortRef, BitVecSortRef])
+NucleotideRef = TypeVar("NucleotideRef", str, DNA, DatatypeRef, BitVecRef)
+NucleotideSort = TypeVar("NucleotideSort",
+                         str, DNA, DatatypeSortRef, BitVecSortRef)
 
-AminoRef = NewType("AminoRef", Union[str, Protein, DatatypeRef, BitVecRef])
-AminoSort = NewType("AminoSort",
-                    Union[str, Protein, DatatypeSortRef, BitVecSortRef])
+AminoRef = TypeVar("AminoRef", str, Protein, DatatypeRef, BitVecRef)
+AminoSort = TypeVar("AminoSort", str, Protein, DatatypeSortRef, BitVecSortRef)
 
-CodonRef = NewType("CodonRef", Union[NucleotideRef, Sequence[NucleotideRef]])
-CodonSort = NewType("CodonSort",
-                    Union[NucleotideSort, Sequence[NucleotideSort]])
+CodonRef = TypeVar("CodonRef", NucleotideRef, Sequence[NucleotideRef])
+CodonSort = TypeVar("CodonSort", NucleotideSort, Sequence[NucleotideSort])
 
 # codes are either dict[codon --> amino] or z3.Function
-CodeRef = NewType("CodeRef", Union[Dict[CodonRef, AminoRef], Code, FuncDeclRef])
+CodeRef = TypeVar("CodeRef", Dict[CodonRef, AminoRef], Code, FuncDeclRef)
 
 # constraints are either bool or z3.BoolRef
-ConstraintRef = NewType("ConstraintRef", Union[bool, BoolRef])
+ConstraintRef = TypeVar("ConstraintRef", bool, BoolRef)
 
 # SolverType is either z3.Solver or z3.Optimize
-SolverType = NewType("SolverType", Union[Solver, Optimize])
+SolverType = TypeVar("SolverType", Solver, Optimize)

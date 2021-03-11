@@ -17,7 +17,7 @@ __all__ = [
 
 def dna_variables(
         loc: Location,
-        nucleotide_sort: NucleotideSort = NucleotideEnumSort
+        nucleotide_sort: NucleotideSort = NucleotideBitVecSort
 ) -> List[NucleotideRef]:
     """
     Creates dna variables for each nucleotide at Location loc:
@@ -35,7 +35,7 @@ def protein_variables(
         seq_variables: Sequence[NucleotideRef],
         part: Part,
         offset: int = 0,
-        amino_sort: AminoSort = AminoEnumSort,
+        amino_sort: AminoSort = AminoBitVecSort,
 ) -> List[AminoRef]:
     """
     A function that generates z3 variables corresponding to the amino acid
@@ -68,7 +68,7 @@ def protein_variables(
 
 
 def code_dict(codons: Sequence[CodonRef] = triplet_dna_codons,
-              amino_sort: AminoSort = AminoEnumSort) -> CodeRef:
+              amino_sort: AminoSort = AminoBitVecSort) -> CodeRef:
     """
     A function that returns a python Dict[str -> AminoRef] mapping DNA codons
     to amino acids
