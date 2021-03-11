@@ -10,13 +10,16 @@ __all__ = [
     # str values
     "triplet_dna_codons", "triplet_rna_codons", "aminoacids",
     # z3 Sorts and possible values
-    "NucleotideEnumSort", "z3nucleotides", "triplet_z3nucleotides",
-    "CodonEnumSort", "z3codons",
-    "AminoEnumSort", "z3_enum_aminos", "STOP", "NULL",
+    "NucleotideEnumSort", "z3_enum_nucleotides", "triplet_z3_enum_nucleotides",
+    "NucleotideBitVecSort", "z3_bitvec_nucleotides",
+    "triplet_z3_bitvec_nucleotides",
+    "CodonEnumSort", "z3_enum_codons",
+    "AminoEnumSort", "z3_enum_aminos",
     "AminoBitVecSort", "z3_bitvec_aminos",
     # mappings from str to z3 values
-    "dna_to_z3codon", "dna_to_z3nucleotide", "rna_to_z3codon",
-    "amino_to_z3_enum_amino", "amino_to_z3_bitvec_amino",
+    "dna_to_z3_bv_nuc", "dna_to_z3_enum_nuc",
+    "dna_to_z3_enum_codon", "rna_to_z3_enum_codon",
+    "amino_to_z3_bv_amino", "amino_to_z3_enum_amino",
     # z3 Functions
     "f_nuc_to_codon", "f_codon_to_amino", "f_nuc_to_amino",
     # z3 constant generating functions
@@ -35,10 +38,22 @@ triplet_rna_codons: List[CodonRef] = [
 aminoacids += ["0"]  # adds NULL
 
 # useful z3 Sorts
-NucleotideEnumSort, z3nucleotides = EnumSort("Nucleotides",
-                                             [f"d{n}" for n in dNTPs])
-triplet_z3nucleotides = list(itertools.product(z3nucleotides, repeat=3))
-CodonEnumSort, z3codons = EnumSort("Codons", triplet_dna_codons)
+NucleotideEnumSort, z3_enum_nucleotides = EnumSort(
+    "Nucleotides", [f"d{n}" for n in dNTPs]
+)
+triplet_z3_enum_nucleotides = list(
+    itertools.product(z3_enum_nucleotides, repeat=3)
+)
+NucleotideBitVecSort = BitVecSort(3)
+z3_bitvec_nucleotides = [
+    BitVec((2 ** i) - 1, NucleotideBitVecSort)
+    for i in range(4)
+]
+triplet_z3_bitvec_nucleotides = list(
+    itertools.product(z3_bitvec_nucleotides, repeat=3)
+)
+
+CodonEnumSort, z3_enum_codons = EnumSort("Codons", triplet_dna_codons)
 
 AminoEnumSort, z3_enum_aminos = EnumSort("Amino Acids", aminoacids)
 AminoBitVecSort = BitVecSort(21)
@@ -49,46 +64,42 @@ z3_bitvec_aminos = [
 
 
 # z3amino definitions
-def get_start(aminos: Sequence[AminoRef] = z3_enum_aminos) -> AminoRef:
+def get_start(aminos: Sequence[AminoRef] = z3_bitvec_aminos) -> AminoRef:
     return aminos[6]
 
 
-START = z3_enum_aminos[6]
-assert str(START) == "M"
-
-
-def get_stop(aminos: Sequence[AminoRef] = z3_enum_aminos) -> AminoRef:
+def get_stop(aminos: Sequence[AminoRef] = z3_bitvec_aminos) -> AminoRef:
     return aminos[-2]
 
 
-def get_null(aminos: Sequence[AminoRef] = z3_enum_aminos) -> AminoRef:
+def get_null(aminos: Sequence[AminoRef] = z3_bitvec_aminos) -> AminoRef:
     return aminos[-1]
 
-
-STOP, NULL = z3_enum_aminos[-2:]
-assert str(STOP) == "*"
-assert str(NULL) == "0"
 
 # python dicts to convert between str and z3 sorts
 # TODO: convert static dicts into functions that generate dicts based on
 #  which sorts to use (unary, EnumSort, raw Bools, etc)
-dna_to_z3codon = {
-    str_codon: z3_codon
-    for str_codon, z3_codon in zip(triplet_dna_codons, z3codons)
-}
-dna_to_z3nucleotide = {
+dna_to_z3_bv_nuc = {
     str_nuc: z3nuc
-    for str_nuc, z3nuc in zip(dNTPs, z3nucleotides)
+    for str_nuc, z3nuc in zip(dNTPs, z3_bitvec_nucleotides)
 }
-rna_to_z3codon = {
+dna_to_z3_enum_codon = {
     str_codon: z3_codon
-    for str_codon, z3_codon in zip(triplet_rna_codons, z3codons)
+    for str_codon, z3_codon in zip(triplet_dna_codons, z3_enum_codons)
+}
+dna_to_z3_enum_nuc = {
+    str_nuc: z3nuc
+    for str_nuc, z3nuc in zip(dNTPs, z3_enum_nucleotides)
+}
+rna_to_z3_enum_codon = {
+    str_codon: z3_codon
+    for str_codon, z3_codon in zip(triplet_rna_codons, z3_enum_codons)
 }
 amino_to_z3_enum_amino = {
     str_amino: z3_amino
     for str_amino, z3_amino in zip(aminoacids, z3_enum_aminos)
 }
-amino_to_z3_bitvec_amino = {
+amino_to_z3_bv_amino = {
     str_amino: z3_bitvec_amino
     for str_amino, z3_bitvec_amino in zip(aminoacids, z3_bitvec_aminos)
 }
@@ -96,14 +107,16 @@ amino_to_z3_bitvec_amino = {
 # z3 Functions
 f_nuc_to_codon = Function(
     "nucleotides -> codons",
-    NucleotideEnumSort, NucleotideEnumSort, NucleotideEnumSort,
+    NucleotideBitVecSort, NucleotideBitVecSort, NucleotideBitVecSort,
     CodonEnumSort
 )
-f_codon_to_amino = Function("codons -> aminos", CodonEnumSort, AminoEnumSort)
+f_codon_to_amino = Function(
+    "codons -> aminos",
+    CodonEnumSort,
+    AminoBitVecSort
+)
 f_nuc_to_amino = Function(
     "nucleotides -> aminos",
-    NucleotideEnumSort, NucleotideEnumSort, NucleotideEnumSort,
-    AminoEnumSort
+    NucleotideBitVecSort, NucleotideBitVecSort, NucleotideBitVecSort,
+    AminoBitVecSort
 )
-
-

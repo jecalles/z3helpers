@@ -1,4 +1,4 @@
-from typing import Dict, Iterable, Optional, Sequence
+from typing import Dict, Optional, Sequence
 import itertools
 
 from z3helpers.definitions import *
@@ -18,26 +18,35 @@ def rmap(dict_):
 
 def z3nuc_to_str(
         nucleotide_list: Sequence[NucleotideRef],
-        mapping: Dict[str, NucleotideRef] = dna_to_z3nucleotide
+        mapping: Optional[Dict[str, NucleotideRef]] = None
 ) -> str:
+    if mapping is None:
+        sort = "bv" if isinstance(nucleotide_list[0], BitVecRef) else "enum"
+        mapping = dna_to_z3_bv_nuc if sort == "bv" else dna_to_z3_enum_nuc
+
     rmap_ = rmap(mapping)
 
     return ''.join(rmap_[nuc] for nuc in nucleotide_list)
 
 
-def z3codon_to_str(codon: CodonRef,
-                   mapping: Dict[str, CodonRef] = dna_to_z3codon) -> str:
+def z3codon_to_str(
+        codon: CodonRef,
+        mapping: Optional[Dict[str, CodonRef]] = None
+) -> str:
+    if mapping is None:
+        mapping = dna_to_z3_enum_codon
+
     rmap_ = rmap(mapping)
+
     return rmap_[codon]
 
 
 def z3amino_to_str(amino: AminoRef,
                    mapping: Optional[Dict[str, CodonRef]] = None):
     if mapping is None:
-        if isinstance(amino, DatatypeRef):
-            mapping = amino_to_z3_enum_amino
-        elif isinstance(amino, BitVecRef):
-            mapping = amino_to_z3_bitvec_amino
+        sort = "bv" if isinstance(amino, BitVecRef) else "enum"
+        mapping = amino_to_z3_bv_amino if sort == "bv" \
+            else amino_to_z3_enum_amino
 
     rmap_ = rmap(mapping)
     return rmap_[amino]
@@ -52,11 +61,11 @@ def decode(T: CodeRef, key: CodonRef) -> AminoRef:
     :param key: codons or nucleotides
     :return amino: amino acid corresponding to "key"
 
-    >>> decode(f_codon_to_amino, z3codons[3])
+    >>> decode(f_codon_to_amino, z3_enum_codons[3])
     codons -> aminos(TTG)
     >>> decode(
     ...     f_nuc_to_amino,
-    ...     (z3nucleotides[0], z3nucleotides[1], z3nucleotides[2])
+    ...     (z3_enum_nucleotides[0], z3_enum_nucleotides[1], z3_enum_nucleotides[2])
     ... )
     nucleotides -> aminos(dT, dC, dA)
     >>> decode(Code(), "AUG")
@@ -77,9 +86,11 @@ def decode(T: CodeRef, key: CodonRef) -> AminoRef:
     elif isinstance(T, FuncDeclRef):
         # convert string keys into z3 defs
         if isinstance(key, str):
-            key = dna_to_z3codon[key]
+            key = dna_to_z3_enum_codon[key]
         elif isinstance(key, Sequence) and isinstance(key[0], str):
-            key = (dna_to_z3nucleotide[n] for n in key)
+            sort = "bv" if isinstance(T.domain(0), BitVecSortRef) else "enum"
+            mapping = dna_to_z3_bv_nuc if sort == "bv"  else dna_to_z3_enum_nuc
+            key = (mapping[n] for n in key)
 
         if T.arity() == 1:  # accepts codons
             if isinstance(key, Sequence):

@@ -1,7 +1,9 @@
 from synbio.codes import Code
 from synbio.polymers import DNA
 
-from z3helpers.definitions import dna_to_z3nucleotide, triplet_dna_codons
+from z3helpers.definitions import (
+    dna_to_z3_bv_nuc, dna_to_z3_enum_nuc, triplet_dna_codons
+)
 from z3helpers.utils import rmap, decode
 from z3helpers.typing import *
 
@@ -34,8 +36,12 @@ def code_from_model(code: CodeRef, model) -> Code:
             codon_tuples, aminos = zip(*codons_and_aminos_chunked)
 
             def codon_from_tuple(tup):
+                sort = "bv" if isinstance(tup[0], BitVecRef) else "enum"
+                mapping = dna_to_z3_bv_nuc if sort == "bv" \
+                    else dna_to_z3_enum_nuc
+
                 return ''.join(
-                    rmap(dna_to_z3nucleotide)[n]
+                    rmap(mapping)[n]
                     for n in tup
                 )
             codons = map(codon_from_tuple, codon_tuples)
@@ -67,7 +73,9 @@ def dna_from_model(dna_variables, model):
             dna_alphabet.append('X')
             return dna_alphabet
 
-    dict_ = rmap(dna_to_z3nucleotide)
+    sort = "bv" if isinstance(dna_variables[0], BitVecRef) else "enum"
+    mapping = dna_to_z3_bv_nuc if sort == "bv" else dna_to_z3_enum_nuc
+    dict_ = rmap(mapping)
 
     dna_assignments = (
         model[var] for var in dna_variables

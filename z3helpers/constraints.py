@@ -62,10 +62,10 @@ def f_codon_true_mapping(f_codon: FuncDeclRef) -> List[ConstraintRef]:
 
     :return: list of constraints
     """
-    nucleotide_triplets = list(itertools.product(z3nucleotides, repeat=3))
+    nucleotide_triplets = list(itertools.product(z3_enum_nucleotides, repeat=3))
     return [
         f_codon(n1, n2, n3) == c
-        for (n1, n2, n3), c in zip(nucleotide_triplets, z3codons)
+        for (n1, n2, n3), c in zip(nucleotide_triplets, z3_enum_codons)
     ]
 
 
@@ -87,8 +87,8 @@ def amino_bitvec_unary_restriction(
 # hard constraints on Genetic Codes
 def at_least_one_codon_per_amino(
         T: CodeRef,
-        codons: Sequence[CodonRef] = z3codons,
-        aminos: Sequence[AminoRef] = z3_enum_aminos,
+        codons: Sequence[CodonRef] = z3_enum_codons,
+        aminos: Sequence[AminoRef] = z3_bitvec_aminos,
         exclude: Optional[AminoRef] = None
 ) -> List[ConstraintRef]:
     """
@@ -111,8 +111,8 @@ def at_least_one_codon_per_amino(
 
 def at_most_one_codon_per_amino(
         T: CodeRef,
-        codons: Sequence[CodonRef] = z3codons,
-        aminos: Sequence[AminoRef] = z3_enum_aminos,
+        codons: Sequence[CodonRef] = z3_enum_codons,
+        aminos: Sequence[AminoRef] = z3_bitvec_aminos,
         exclude: Optional[AminoRef] = None
 ) -> List[ConstraintRef]:
     """
@@ -143,8 +143,8 @@ def at_most_one_codon_per_amino(
 
 def exactly_one_codon_per_amino(
         T: CodeRef,
-        codons: Sequence[CodonRef] = z3codons,
-        aminos: Sequence[AminoRef] = z3_enum_aminos,
+        codons: Sequence[CodonRef] = z3_enum_codons,
+        aminos: Sequence[AminoRef] = z3_bitvec_aminos,
         exclude: Optional[AminoRef] = None
 ) -> List[ConstraintRef]:
     """
@@ -167,8 +167,8 @@ def exactly_one_codon_per_amino(
 def n_sense_codons(
         T: CodeRef,
         n_codons: int,
-        codons: Sequence[CodonRef] = z3codons,
-        aminos: Sequence[AminoRef] = z3_enum_aminos,
+        codons: Sequence[CodonRef] = z3_enum_codons,
+        aminos: Sequence[AminoRef] = z3_bitvec_aminos,
         exclude: Optional[AminoRef] = None
 ) -> List[ConstraintRef]:
     if exclude is None:
@@ -184,7 +184,7 @@ def n_sense_codons(
 def keep_all_stops(
         T: CodeRef,
         codons: Sequence[CodonRef] = triplet_dna_codons,
-        aminos: Sequence[AminoRef] = z3_enum_aminos,
+        aminos: Sequence[AminoRef] = z3_bitvec_aminos,
         amino_dict: Dict[str, AminoRef] = amino_to_z3_enum_amino
 ) -> List[ConstraintRef]:
     stop = get_stop(aminos)
@@ -208,7 +208,7 @@ def keep_all_stops(
 def compatible_with_standard_code(
         T: CodeRef,
         codons: Sequence[CodonRef] = triplet_dna_codons,
-        aminos: Sequence[AminoRef] = z3_enum_aminos,
+        aminos: Sequence[AminoRef] = z3_bitvec_aminos,
         amino_dict: Dict[str, AminoRef] = amino_to_z3_enum_amino
 ) -> List[ConstraintRef]:
     null = get_null(aminos)
@@ -246,8 +246,8 @@ def translation_constraints(
         prot_variables: Sequence[AminoRef],
         location: Location,
         offset: int = 0,
-        nucleotides: Sequence[NucleotideRef] = z3nucleotides,
-        aminos: Sequence[AminoRef] = z3_enum_aminos,
+        nucleotides: Sequence[NucleotideRef] = z3_bitvec_nucleotides,
+        aminos: Sequence[AminoRef] = z3_bitvec_aminos,
         start_flag: bool = False,
         stop_flag: bool = False
 ) -> List[ConstraintRef]:
@@ -315,8 +315,10 @@ def same_sequence(
         dna_variables: Sequence[NucleotideRef],
         wt_sequence: str
 ) -> List[ConstraintRef]:
+    sort = "bv" if isinstance(dna_variables[0], BitVecRef) else "enum"
+    mapping = dna_to_z3_bv_nuc if sort == "bv" else dna_to_z3_enum_nuc
     seq_in_z3nucleotides = (
-        dna_to_z3nucleotide[n] for n in wt_sequence
+        mapping[n] for n in wt_sequence
     )
     return [
         variable == wt_value
@@ -359,8 +361,8 @@ def standard_code(
 def FS20(
         T: CodeRef,
         f_codon: FuncDeclRef = f_nuc_to_codon,
-        codons: Sequence[CodonRef] = z3codons,
-        aminos: Sequence[AminoRef] = z3_enum_aminos,
+        codons: Sequence[CodonRef] = z3_enum_codons,
+        aminos: Sequence[AminoRef] = z3_bitvec_aminos,
 ) -> List[ConstraintRef]:
     constraints = exactly_one_codon_per_amino(T, codons, aminos)
     # if T is a Function, add true nucleotide -> codon mapping
@@ -374,8 +376,8 @@ def FSN(
         T: CodeRef,
         N: int,
         f_codon: FuncDeclRef = f_nuc_to_codon,
-        codons: Sequence[CodonRef] = z3codons,
-        aminos: Sequence[AminoRef] = z3_enum_aminos,
+        codons: Sequence[CodonRef] = z3_enum_codons,
+        aminos: Sequence[AminoRef] = z3_bitvec_aminos,
 ) -> List[ConstraintRef]:
     constraints = at_least_one_codon_per_amino(T, codons, aminos) \
                     + n_sense_codons(T, N, codons=codons)
@@ -390,8 +392,8 @@ def FSN(
 def RED20(
         T: CodeRef,
         f_codon: FuncDeclRef = f_nuc_to_codon,
-        codons: Sequence[CodonRef] = z3codons,
-        aminos: Sequence[AminoRef] = z3_enum_aminos,
+        codons: Sequence[CodonRef] = z3_enum_codons,
+        aminos: Sequence[AminoRef] = z3_bitvec_aminos,
         amino_dict: Dict[str, AminoRef] = amino_to_z3_enum_amino
 ) -> List[ConstraintRef]:
     return FS20(T, f_codon, codons, aminos) \
@@ -403,8 +405,8 @@ def REDN(
         T: CodeRef,
         N: int,
         f_codon: FuncDeclRef = f_nuc_to_codon,
-        codons: Sequence[CodonRef] = z3codons,
-        aminos: Sequence[AminoRef] = z3_enum_aminos,
+        codons: Sequence[CodonRef] = z3_enum_codons,
+        aminos: Sequence[AminoRef] = z3_bitvec_aminos,
         amino_dict: Dict[str, AminoRef] = amino_to_z3_enum_amino
 ) -> List[ConstraintRef]:
     return FSN(T, N, f_codon, codons, aminos) \
