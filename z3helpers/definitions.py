@@ -64,15 +64,15 @@ z3_bitvec_aminos = [
 
 
 # z3amino definitions
-def get_start(aminos: Sequence[AminoRef] = z3_bitvec_aminos) -> AminoRef:
+def get_start(aminos: Sequence[AminoRef] = z3_enum_aminos) -> AminoRef:
     return aminos[6]
 
 
-def get_stop(aminos: Sequence[AminoRef] = z3_bitvec_aminos) -> AminoRef:
+def get_stop(aminos: Sequence[AminoRef] = z3_enum_aminos) -> AminoRef:
     return aminos[-2]
 
 
-def get_null(aminos: Sequence[AminoRef] = z3_bitvec_aminos) -> AminoRef:
+def get_null(aminos: Sequence[AminoRef] = z3_enum_aminos) -> AminoRef:
     return aminos[-1]
 
 
