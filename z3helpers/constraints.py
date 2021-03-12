@@ -16,14 +16,14 @@ __all__ = [
     "this_many_true", "f_codon_true_mapping", "amino_bitvec_unary_restriction",
     # code related constraints
     "at_least_one_codon_per_amino", "at_most_one_codon_per_amino",
-    "exactly_one_codon_per_amino", "n_sense_codons", "keep_all_stops",
-    "compatible_with_standard_code", "specific_code",
+    "exactly_one_codon_per_amino", "compatible_with_standard_code",
+    "specific_code",
     # translation constraints
     "translates_same", "translation_constraints",
     # dna sequence constraints
     "same_sequence",
     # code definitions
-    "standard_code", "FS20", "FSN", "RED20", "REDN"
+    "standard_code", "FS20", "RED20"
 ]
 
 
