@@ -3,6 +3,7 @@ from typing import Dict, List, Optional, Sequence
 
 from synbio.utils import get_codons
 from synbio.codes import Code
+from synbio.polymers import SeqType
 from synbio.annotations import Location, Part
 
 from z3 import BitVecVal, Extract, Implies, And, Or, PbEq, PbLe
@@ -313,10 +314,10 @@ def translation_constraints(
 
 def same_sequence(
         dna_variables: Sequence[NucleotideRef],
-        wt_sequence: str
+        wt_sequence: SeqType
 ) -> List[ConstraintRef]:
     seq_in_z3nucleotides = (
-        dna_to_z3nucleotide[n] for n in wt_sequence
+        dna_to_z3nucleotide[n] for n in str(wt_sequence)
     )
     return [
         variable == wt_value
