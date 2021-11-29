@@ -69,10 +69,10 @@ def dna_from_model(
         model: ModelObj
 ) -> DNA:
     class AmbiguousDNA(DNA):
-        basepairing = {
-            k: v for k, v in DNA.basepairing.items()
-        }
-        basepairing['X'] = 'X'
+        def basepairing(self):
+            bp = DNA.basepairing()
+            bp['X'] = 'X'
+            return bp
 
         def alphabet(self):
             dna_alphabet = super().alphabet()

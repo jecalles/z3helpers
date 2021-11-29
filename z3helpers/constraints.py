@@ -3,6 +3,7 @@ from typing import Dict, List, Optional, Sequence
 
 from synbio.utils import get_codons
 from synbio.codes import Code
+from synbio.polymers import SeqType
 from synbio.annotations import Location, Part
 
 from z3 import BitVecVal, Extract, Implies, And, Or, PbEq, PbLe
@@ -313,7 +314,7 @@ def translation_constraints(
 
 def same_sequence(
         dna_variables: Sequence[NucleotideRef],
-        wt_sequence: str
+        wt_sequence: SeqType
 ) -> List[ConstraintRef]:
     sort = "bv" if isinstance(dna_variables[0], BitVecRef) else "enum"
     mapping = dna_to_z3_bv_nuc if sort == "bv" else dna_to_z3_enum_nuc

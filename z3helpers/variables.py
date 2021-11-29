@@ -53,9 +53,6 @@ def protein_variables(
         ]
 
     elif isinstance(T, FuncDeclRef):
-        begin = part.location.start - offset
-        end = part.location.end - offset
-
         prot_seq = [
             decode(T, codon)
             for codon in codons

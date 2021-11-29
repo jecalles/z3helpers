@@ -109,8 +109,8 @@ def decode(T: CodeRef, key: CodonRef) -> AminoRef:
 
 
 def add_constraints(solver: SolverType,
-                    constraints: Sequence[ConstraintRef],
-                    weights: Optional[Sequence[int]] = None,
+                    constraints: Iterable[ConstraintRef],
+                    weights: Optional[Iterable[int]] = None,
                     hard: bool = True) -> None:
 
     if hard:
